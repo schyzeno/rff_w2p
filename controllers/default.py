@@ -3,11 +3,28 @@
 # This is a sample controller
 # this file is released under public domain and you can use without limitations
 # -------------------------------------------------------------------------
-
+from rff import Rff
+from gluon.contrib.appconfig import AppConfig
 # ---- example index page ----
 def index():
-    response.flash = T("Hello World22222222222222222")
-    return dict(message=T('Welcome to web2py!'))
+    r = Rff()
+    r.loadAppConfig()
+    myconf = AppConfig(reload=False)
+    client_id = myconf.take('app.clientid')
+    client_secret = myconf.take('app.clientsecret')
+    STATE = r.credentials['clientid']
+    session.state = STATE
+    host = 'http://127.0.0.1:8000'
+    auth_url = 'https://www.reddit.com/api/v1/authorize?client_id='+client_id+'&response_type=code&state='+STATE+'&redirect_uri='+host+URL('friends')+'&duration=temporary&scope=mysubreddits'
+    return dict(auth_link=A('authorize',_href=auth_url))
+
+def friends():
+    code = request.vars.code
+    state = request.vars.state
+    error = request.vars.error
+    if error or (state != session.state):
+        code = 'Access Denied'
+    return dict(code=code, state=state, error=error)
 
 # ---- API (example) -----
 @auth.requires_login()
